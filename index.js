@@ -1,32 +1,64 @@
 const express = require("express");
+const morgan = require("morgan");
 const app = express();
 
-app.use(express.json());
+/*Middleware---------------------------------------------------
+const requestLogger = (request, response, next) => {
+  console.log("Method:", request.method);
+  console.log("Path:  ", request.path);
+  console.log("Body:  ", request.body);
+  console.log("---");
+  next();
+};
 
-let notes = [
+app.use(requestLogger);
+
+const unknownEndpoint = (request, response) => {
+  response.status(404).send({ error: "unknown endpoint" });
+};
+
+app.use(unknownEndpoint);
+--------------------------------------------------------------*/
+//:remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent"
+
+app.use(express.json());
+app.use(
+  morgan(":method :url :status :res[content-length] - :response-time ms :test ")
+);
+
+morgan.token("test", function (req, res) {
+  return JSON.stringify(req.body);
+});
+
+let persons = [
   {
     id: 1,
-    content: "HTML is easy",
-    important: true,
+    name: "Arto Hellas",
+    number: "040-123456",
   },
   {
     id: 2,
-    content: "Browser can execute only JavaScript",
-    important: false,
+    name: "Ada Lovelace",
+    number: "39-44-5323523",
   },
   {
     id: 3,
-    content: "GET and POST are the most important methods of HTTP protocol",
-    important: true,
+    name: "Dan Abramov",
+    number: "12-43-234345",
+  },
+  {
+    id: 4,
+    name: "Mary Poppendieck",
+    number: "39-23-6423122",
   },
 ];
 
 const generateId = () => {
-  const maxId = notes.length > 0 ? Math.max(...notes.map((n) => n.id)) : 0;
+  const maxId = persons.length > 0 ? Math.max(...persons.map((n) => n.id)) : 0;
   return maxId + 1;
 };
 
-app.post("/api/notes", (request, response) => {
+app.post("/api/persons", (request, response) => {
   const body = request.body;
 
   if (!body.content) {
@@ -35,40 +67,47 @@ app.post("/api/notes", (request, response) => {
     });
   }
 
-  const note = {
+  const person = {
     content: body.content,
     important: body.important || false,
     id: generateId(),
   };
 
-  notes = notes.concat(note);
+  persons = persons.concat(person);
 
-  response.json(note);
+  response.json(person);
+});
+
+app.get("/info", (request, response) => {
+  const today = new Date();
+  response.send(
+    `<h1>Phonebook has info for ${persons.length} people<br>${today}</h1>`
+  );
 });
 
 app.get("/", (request, response) => {
   response.send("<h1>Hello World!</h1>");
 });
 
-app.get("/api/notes", (request, response) => {
-  response.json(notes);
+app.get("/api/persons", (request, response) => {
+  response.json(persons);
 });
 
-app.get("/api/notes/:id", (request, response) => {
+app.get("/api/persons/:id", (request, response) => {
   const id = Number(request.params.id);
-  const note = notes.find((note) => note.id === id);
-  response.json(note);
+  const person = persons.find((person) => person.id === id);
+  response.json(person);
 
-  if (note) {
-    response.json(note);
+  if (person) {
+    response.json(person);
   } else {
     response.status(404).end();
   }
 });
 
-app.delete("/api/notes/:id", (request, response) => {
+app.delete("/api/persons/:id", (request, response) => {
   const id = Number(request.params.id);
-  notes = notes.filter((note) => note.id !== id);
+  persons = persons.filter((person) => person.id !== id);
 
   response.status(204).end();
 });
